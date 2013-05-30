@@ -1,0 +1,492 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>dungeons</title>
+	<style type="text/css">
+	@import url(http://fonts.googleapis.com/css?family=Fanwood+Text);
+		.tile{
+			position: absolute;
+			width: 68px;
+			height: 68px;
+			background: black;
+		}
+
+		#stage {
+			float: left;
+			position: relative;
+			height: 612px;
+			width: 680px;
+		}
+		#outputDiv {
+			margin-top: -20px;
+			clear: both;
+			padding-left:15px;
+			float:left;
+			color: #ccc;
+			width: 400px;
+			height: 412px;
+			font-family: 'Fanwood Text', serif;
+			font-size:130%;
+			overflow: hidden;
+		}
+
+		#outputDiv p {
+			padding: 5px;
+			margin: 0px;
+		}
+
+		#hud{
+			padding:0px;
+			margin:0px;
+			margin-left: 17px;
+			float:left;
+			font-family: 'Fanwood Text', serif;
+			font-size:130%;
+			color: #ccc;
+			list-style: none;
+		}
+
+		#health {
+			color: #09870B;
+		}
+
+		#gold {
+			color: #916F08;
+		}
+
+		#gold {
+			color: #916F08;
+		}
+
+		#potions{
+			color: #BF1E1E;
+			position: relative;
+		}
+
+		#potContainer {
+			position: absolute;
+			top: 0px;
+			left: 70px;
+			margin: 0;
+			padding: 0;
+			width: 300px;
+		}
+
+		.potion{
+			display: inline-block;
+			width: 25px;
+			height: 25px;
+			background-image: url(../images/potion.png);
+		}
+
+		#hud li{
+			padding:0px;
+			margin:0px;
+			margin-top: -10px;
+		}
+
+		#textContainer {
+			float:left;
+		}
+		body{
+			background: black;
+		}
+	</style>
+</head>
+<body>
+
+
+<div id="stage"></div>
+<div id="textContainer">
+<ul id="hud">
+<li id="health"><p>Hero Health: 5</p></li>
+<li id="gold"><p>Hero Gold: 0</p></li>
+<li id="potions"><p>Potions: </p>
+	<ul id="potContainer">
+		<li class="potion">&nbsp;</li>
+	</ul>
+</li>
+<li id="score"><p>Monsters killed: 0</p></li>
+</ul>
+<div id="outputDiv">
+</div>
+</div>
+
+<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+<script type="text/javascript">
+
+$(document).ready(function(){
+	//arrays
+	var map = [
+				[1,1,1,1,1,1,1,1,1,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,0,0,0,0,0,0,0,0,1],
+				[1,1,1,1,1,1,1,1,1,1]
+			  ];
+	var actors = [
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0],
+				   [0,2,0,0,0,0,0,0,0,0],
+				   [0,0,0,0,0,0,0,0,0,0]
+				 ];
+	var stage = $("#stage");
+	//constants
+	var WIDTH = 68;
+	var ROWS = map.length;
+	var COLUMNS = map[0].length;
+
+	//map elements
+	var FLOOR = 0;
+	var WALL = 1;
+	var HERO = 2;
+	var MONSTER = 3;
+
+	//i/o
+	var UP = 38;
+	var DOWN = 40;
+	var LEFT = 37;
+	var RIGHT = 39;
+	var output = $("div#outputDiv");
+
+	//variables
+	var heroTop = 0;
+	var heroLeft = 0;
+	var monsterTop = 0;
+	var monsterLeft = 0;
+	var monsterPresent = false;
+	var score = 0;
+	var gameWon = false;
+	var heroHealth = 5;
+	var heroGold = 0;
+	var heroLastTop = 0;
+	var heroLastLeft = 0;
+	var monsterLastTop = 0;
+	var monsterLastLeft = 0;
+	var potions = 1;
+
+	// main functions
+
+	renderGame();
+	makeKeysClick();
+
+	// render functions
+
+	function renderGame() {
+		stage.empty();
+		for(var row=0;row<ROWS;row++){
+			for(var col=0;col<COLUMNS;col++){
+				var tile = $("<div class='tile'>");
+				var top = WIDTH*row;
+				var left = WIDTH*col;
+				tile.css("top",top+"px");
+				tile.css("left",left+"px");
+				stage.append(tile);
+				switch(map[row][col]){
+					case WALL:
+					 tile.css("background-image","url(../images/wall.png)")
+					 break;
+					case MONSTER:
+					 tile.css("background-image","url(../images/monster.png)");
+					 monsterTop = row;
+					 monsterLeft = col;
+					 break;
+				};
+				switch(actors[row][col]){
+					case HERO:
+					 tile.css("background-image","url(../images/knight.png)");
+					 heroTop = row;
+					 heroLeft = col;
+					 break;
+				};
+			}
+		}
+	}
+
+	function endTurn() {
+		switch(map[heroTop][heroLeft]){
+			case MONSTER:
+			 heroAttack();
+			 break;
+		}
+
+		if(monsterPresent){
+		moveMonster();
+		}
+
+		if(!monsterPresent){
+		placeMonster();	
+		}
+
+		renderGame();
+		if(output.children().length >3){
+			$("#outputDiv p:first").slideUp(200, function(){ $(this).remove(); } )
+		}
+	}
+
+	// click function
+
+	function makeKeysClick() {
+		$(document).keydown(function(e){
+		switch(e.which){
+			case UP:
+			 if(heroTop > 0 && map[heroTop-1][heroLeft] !== 1) {
+			 	actors[heroTop][heroLeft] = 0;
+			 	heroLastTop = heroTop;
+			 	heroLastLeft = heroLeft;
+			 	heroTop--;
+			 	actors[heroTop][heroLeft] = 2;
+			 	endTurn();
+			 }
+			 break;
+			case DOWN:
+			 if(heroTop < ROWS-1 && map[heroTop+1][heroLeft] !== 1) {
+			 	actors[heroTop][heroLeft] = 0;
+			 	heroLastTop = heroTop;
+			 	heroLastLeft = heroLeft;
+			 	heroTop++;
+			 	actors[heroTop][heroLeft] = 2;
+			 	endTurn();
+			 }
+			 break;
+			case LEFT:
+			 if(heroLeft > 0 && map[heroTop][heroLeft-1] !== 1) {
+			 	actors[heroTop][heroLeft] = 0;
+			 	heroLastTop = heroTop;
+			 	heroLastLeft = heroLeft;
+			 	heroLeft--;
+			 	actors[heroTop][heroLeft] = 2;
+			 	endTurn();
+			 }
+			 break;
+			case RIGHT:
+			 if(heroLeft < COLUMNS-1 && map[heroTop][heroLeft+1] !== 1) {
+			 	actors[heroTop][heroLeft] = 0;
+			 	heroLastTop = heroTop;
+			 	heroLastLeft = heroLeft;
+			 	heroLeft++;
+			 	actors[heroTop][heroLeft] = 2;
+			 	endTurn();
+			 }
+			 break;
+		}
+		switch(e.which){
+			case 72:
+			if(potions>0){
+			 drinkHP();	
+			} else{
+			 updateMessage("<p>You have no potions</p>");
+			}
+			endTurn();
+			break;
+		}
+	})
+	}
+
+	// message functions
+
+	function updateMessage(message){
+		if(output.children().length >3){
+			$("#outputDiv p:first").slideUp(200, function(){ $(this).remove(); } )
+		}
+		output.append(message)
+	}
+
+	function updateHealth() {
+		$("#health").html("<p>Hero Health: "+heroHealth+"</p>");
+	}
+
+	function updateScore() {
+		$("#score").html("<p>Monsters killed: "+score+"</p>");
+	}
+
+	// monster functions
+
+	function placeMonster() {
+			if(Math.random() > 0.3){
+				do{
+					do{
+						monsterTop = Math.floor(Math.random()*COLUMNS);
+					} while(monsterTop === heroTop);
+					do{
+						monsterLeft = Math.floor(Math.random()*ROWS);
+					} while(monsterLeft === heroLeft);
+				} while(map[monsterTop][monsterLeft] === 1 || map[monsterTop][monsterLeft] === 3 );
+				monsterPresent = true;
+				map[monsterTop][monsterLeft] = 3;
+				console.log(monsterTop+" " +monsterLeft);
+				updateMessage("<p>a monster appears!</p>");
+			}
+	} 
+
+	function lootMonster() {
+		if(Math.random() > 0.6){	
+			var monsterGold = 0;
+			monsterGold = Math.ceil(Math.random() * 9);
+			heroGold += monsterGold;
+			updateMessage("<p>You have found "+monsterGold+" gold coins!</p>");
+			$("#gold").html("<p>Hero Gold: "+heroGold+"</p>");
+		}
+		if(Math.random() > 0.7){	
+			potions++;
+			updateMessage("<p>You have found a potion!</p>");
+			renderPotions();
+		}
+	}
+
+	function moveMonster(){
+		var distanceTop = 0;
+		var distanceLeft =0;
+		monsterLastTop = monsterTop;
+		monsterLastLeft = monsterLeft;
+		if(heroTop > monsterTop){
+			distanceTop = heroTop - monsterTop
+		} else {
+			distanceTop = monsterTop - heroTop
+		}
+		if(heroLeft > monsterLeft){
+			distanceLeft = heroLeft - monsterLeft
+		} else {
+			distanceLeft = monsterLeft - heroLeft
+		}
+		map[monsterTop][monsterLeft] = 0;
+		if(distanceTop>=distanceLeft) {
+			if(monsterTop > heroTop){
+				monsterTop --;
+			} else if (monsterTop === heroTop){
+			} else {
+				monsterTop ++;
+			}	
+		} else {
+			if(monsterLeft > heroLeft){
+			monsterLeft --;
+			} else if (monsterLeft === heroLeft){
+			} else {
+				monsterLeft ++;
+			}
+		}
+		map[monsterTop][monsterLeft] = 3;
+		switch(actors[monsterTop][monsterLeft]){
+			case HERO:
+			 monsterAttack();
+			 break;
+		}
+	}
+
+	// fight functions
+
+	function heroAttack() {
+		if(Math.random() > 0.3){
+			score+=1;
+			monsterPresent=false;
+			map[heroTop][heroLeft] = 0;
+			updateMessage("<p>You attack the monster! You slay the monster!</p>");
+			updateScore();
+			lootMonster();
+			if(score >= 5){gameWon = true; endGame();}
+		} else {
+			updateMessage("<p>You attack the monster! You miss!</p>");
+			actors[heroTop][heroLeft] = 0;
+			actors[heroLastTop][heroLastLeft] = 2;
+			renderGame();
+		}		
+	}
+
+	function monsterAttack() {
+		if(Math.random() > 0.9){
+			updateMessage("<p>Monster attacks! It misses!</p>");
+			map[monsterTop][monsterLeft] = 0;
+			map[monsterLastTop][monsterLastLeft] = 3;
+		} else {
+			heroHealth--;
+			updateMessage("<p>Monster attacks! You are injured!</p>");
+			map[monsterTop][monsterLeft] = 0;
+			map[monsterLastTop][monsterLastLeft] = 3;
+			updateHealth();
+			if(heroHealth <= 0){endGame();}
+			renderGame();
+		}		
+	}
+
+
+	//potion functions
+
+	function drinkHP() {
+		var potionStrength = Math.floor(Math.random() * 3 +1);
+		heroHealth += potionStrength
+		if(heroHealth>5){
+			heroHealth =5;
+			updateMessage("<p>You drink a potion! You regain full health</p>");
+		} else {
+		updateMessage("<p>You drink a potion! You regain "+potionStrength+" health</p>");
+		}
+		updateHealth();
+		potions --;
+		renderPotions();
+	};
+
+	function renderPotions() {
+		$("#potContainer").empty();
+		for(var i=0;i<potions;i++){
+			$("#potContainer").append("<li class='potion'>&nbsp;</li>")
+		}
+	}
+
+	// game finishing functions
+
+	function endGame() {
+		if(gameWon){
+			updateMessage("<p>You have won the game!</p>")
+		} else {
+			updateMessage("<p>You have lost the game!</p>")
+		}
+		$(document).unbind();
+		$("#outputDiv").append("<button id='restartButton'>RESTART</button>");
+		$("#restartButton").click(function(){restartGame()});
+		$(document).keypress(function(e){
+			if(e.keyCode === 13){
+				restartGame();
+			}	
+		});
+		return false;
+	}
+
+	function restartGame() {
+		for(var row=0;row<ROWS;row++){
+			for(var col=0;col<COLUMNS;col++){
+				if(map[row][col] === 3){
+					map[row][col] = 0;
+					monsterPresent = false;
+				}
+			}
+		}
+		actors[heroTop][heroLeft] = 0;
+		actors[7][1] = 2;
+		heroGold = 0;
+		heroHealth = 5;
+		score = 0;
+		potions = 1;
+		gameWon = false;
+		$("#health").html("<p>Hero Health: 5</p>");
+		$("#score").html("<p>Monsters killed: 0</p>");
+		$("#gold").html("<p>Hero Gold: 0</p>");
+		$("#outputDiv").empty();
+		makeKeysClick();
+		renderGame();
+		renderPotions();
+	}
+});
+
+</script>
+</body>
+</html>
